@@ -83,7 +83,7 @@ class MainActivity : Activity() {
         val scroll = ScrollView(this).apply {
             isFillViewport = true
             clipToPadding = false
-            addView(pageBody, ScrollView.LayoutParams(-1, -2))
+            addView(pageBody, android.view.ViewGroup.LayoutParams(-1, -2))
         }
         root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
         val nav = LinearLayout(this).apply {
