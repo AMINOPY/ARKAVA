@@ -109,35 +109,41 @@ class PhantomRadarView @JvmOverloads constructor(
         )
         canvas.restore()
 
-        if (active || danger) {
-            val sweepPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                style = Paint.Style.FILL
-                shader = android.graphics.SweepGradient(
-                    cx, cy,
-                    intArrayOf(Color.TRANSPARENT, withAlpha(tone, 6), withAlpha(tone, 58), Color.TRANSPARENT),
-                    floatArrayOf(0f, 0.68f, 0.96f, 1f)
-                )
-            }
-            canvas.save()
-            canvas.rotate(phase, cx, cy)
-            canvas.drawCircle(cx, cy, radius, sweepPaint)
-            canvas.restore()
+        // The sweep runs in standby too, but at a restrained intensity.
+        val sweepAlpha = if (active || danger) 64 else 24
+        val sweepPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            style = Paint.Style.FILL
+            shader = android.graphics.SweepGradient(
+                cx, cy,
+                intArrayOf(Color.TRANSPARENT, withAlpha(tone, 4), withAlpha(tone, sweepAlpha), Color.TRANSPARENT),
+                floatArrayOf(0f, 0.68f, 0.96f, 1f)
+            )
         }
+        canvas.save()
+        canvas.rotate(phase, cx, cy)
+        canvas.drawCircle(cx, cy, radius, sweepPaint)
+        canvas.restore()
 
-        // Node markers are decorative and never represent measured server health.
+        // Orbital telemetry particles. Decorative only; they never imply a measured node state.
         paint.shader = null
         paint.style = Paint.Style.FILL
         dots.forEachIndexed { index, point ->
-            val dx = cx + (point.first - 0.5f) * radius * 1.72f
-            val dy = cy + (point.second - 0.5f) * radius * 1.72f
-            if (dx >= cx - radius && dx <= cx + radius && dy >= cy - radius && dy <= cy + radius) {
-                paint.color = withAlpha(tone, if (active && index % 2 == 0) 230 else 110)
-                canvas.drawCircle(dx, dy, dp(if (active && index % 2 == 0) 3.2f else 2f), paint)
+            val orbit = radius * (0.48f + (index % 3) * 0.13f)
+            val angle = Math.toRadians((phase * (if (index % 2 == 0) 0.45f else -0.31f) + index * 61f).toDouble())
+            val dx = cx + cos(angle).toFloat() * orbit
+            val dy = cy + sin(angle).toFloat() * orbit * 0.78f
+            val pulse = (sin(Math.toRadians((phase * 2f + index * 57f).toDouble())) + 1.0) * 0.5
+            paint.color = withAlpha(tone, (75 + pulse * if (active || danger) 175 else 65).toInt())
+            canvas.drawCircle(dx, dy, dp((1.5f + pulse.toFloat() * 1.8f)), paint)
+            if (active || danger) {
+                paint.color = withAlpha(tone, (28 + pulse * 55).toInt())
+                canvas.drawCircle(dx, dy, dp(5f + pulse.toFloat() * 2f), paint)
             }
         }
 
         // Glass sphere: layered radial highlights, dark limb and a specular reflection.
-        val orb = radius * 0.19f
+        val breathing = 1f + (sin(Math.toRadians(phase.toDouble())).toFloat() * 0.035f)
+        val orb = radius * 0.19f * breathing
         paint.style = Paint.Style.FILL
         paint.shader = RadialGradient(
             cx - orb * 0.42f, cy - orb * 0.48f, orb * 1.9f,
@@ -171,8 +177,9 @@ class PhantomRadarView @JvmOverloads constructor(
         paint.color = tone
         canvas.drawCircle(cx, cy, dp(2.5f), paint)
 
-        if (attached && (active || danger)) {
-            phase = (phase + 1.3f) % 360f
+        if (attached) {
+            // Gentle standby drift; faster motion only when a real state is supplied.
+            phase = (phase + if (active || danger) 1.35f else 0.42f) % 360f
             postInvalidateOnAnimation()
         }
     }
