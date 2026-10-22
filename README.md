@@ -12,11 +12,12 @@ Native Android application foundation written in Kotlin. Product UI work is defe
 - Profile persistence encrypted with AES-GCM using a key held by Android Keystore.
 - Unit tests for profile validation and connection lifecycle failure handling.
 - GitHub Actions workflow for unit tests and debug APK assembly.
+- Pinned `AMINOPY/pg-core` source reference as a Git submodule at `third_party/pg-core`, with Android adaptation documented in [docs/PG_CORE_INTEGRATION.md](docs/PG_CORE_INTEGRATION.md).
 - No false-positive connection state: the service reports that the engine is pending and does not create a TUN interface.
 
 ## Important status
 
-**This is not a working VPN yet.** Xray-core and sing-box are not bundled or wired to packet forwarding. The foreground service is only a lifecycle shell. Do not assume traffic is protected by this build.
+**This is not a working VPN yet.** Xray-core and sing-box are not bundled or wired to packet forwarding. The foreground service is only a lifecycle shell. pg-core is a Go reference project and is not compiled into the Android APK. Do not assume traffic is protected by this build.
 
 The profile store encrypts profile content at rest, but it is not a substitute for engine integration or a security review. If the Android Keystore key is invalidated or lost, previously encrypted profile data may no longer be readable.
 
