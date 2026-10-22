@@ -13,6 +13,7 @@ import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
 import android.view.View
+import android.view.animation.AnimationUtils
 import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -117,24 +118,14 @@ class MainActivity : Activity() {
         animatePageEntrance()
     }
 
-    /** Staggered HUD-style reveal; native property animators keep overhead low. */
+    /** Staggered HUD reveal: XML defines motion, Kotlin staggers it per component. */
     private fun animatePageEntrance() {
         if (!::pageBody.isInitialized) return
         for (index in 0 until pageBody.childCount) {
             val child = pageBody.getChildAt(index)
-            child.alpha = 0f
-            child.translationY = dp(14).toFloat()
-            child.scaleX = 0.985f
-            child.scaleY = 0.985f
-            child.animate()
-                .alpha(1f)
-                .translationY(0f)
-                .scaleX(1f)
-                .scaleY(1f)
-                .setStartDelay((index * 42L).coerceAtMost(260L))
-                .setDuration(360L)
-                .setInterpolator(DecelerateInterpolator(1.7f))
-                .start()
+            val reveal = AnimationUtils.loadAnimation(this, R.anim.phantom_page_reveal)
+            reveal.startOffset = (index * 42L).coerceAtMost(260L)
+            child.startAnimation(reveal)
         }
     }
 
