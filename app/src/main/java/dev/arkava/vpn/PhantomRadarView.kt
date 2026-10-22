@@ -14,9 +14,8 @@ import kotlin.math.min
 import kotlin.math.sin
 
 /**
- * Lightweight Canvas-rendered radar for PHANTOM COMMAND.
- * It is intentionally decorative: connection truth comes from the VPN service,
- * never from this animation.
+ * Canvas-rendered tactical radar with a 2.5D holographic core.
+ * It is a visual instrument only; connection truth must come from the VPN service.
  */
 class PhantomRadarView @JvmOverloads constructor(
     context: Context,
@@ -74,13 +73,11 @@ class PhantomRadarView @JvmOverloads constructor(
         canvas.drawCircle(cx, cy, radius * 1.1f, paint)
         paint.shader = null
 
-        // Perspective rings and precision ticks create a physical instrument feel.
+        // Precision rings and ticks form the flat instrument layer behind the orb.
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = dp(1f)
         paint.color = withAlpha(tone, 130)
-        for (i in 1..4) {
-            canvas.drawCircle(cx, cy, radius * i / 4f, paint)
-        }
+        for (i in 1..4) canvas.drawCircle(cx, cy, radius * i / 4f, paint)
         paint.color = withAlpha(tone, 70)
         paint.strokeWidth = dp(0.7f)
         canvas.drawLine(cx - radius, cy, cx + radius, cy, paint)
@@ -94,7 +91,24 @@ class PhantomRadarView @JvmOverloads constructor(
             )
         }
 
-        // Sweep beam is deliberately subtle while disconnected.
+        // A perspective ellipse adds depth without a heavy 3D engine.
+        val orbitRadius = radius * 0.62f
+        canvas.save()
+        canvas.rotate(-24f, cx, cy)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = dp(1f)
+        paint.color = withAlpha(tone, 105)
+        canvas.drawOval(
+            RectF(cx - orbitRadius, cy - orbitRadius * 0.28f, cx + orbitRadius, cy + orbitRadius * 0.28f),
+            paint
+        )
+        paint.color = withAlpha(tone, 45)
+        canvas.drawOval(
+            RectF(cx - orbitRadius * 0.82f, cy - orbitRadius * 0.42f, cx + orbitRadius * 0.82f, cy + orbitRadius * 0.42f),
+            paint
+        )
+        canvas.restore()
+
         if (active || danger) {
             val sweepPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
                 style = Paint.Style.FILL
@@ -110,37 +124,61 @@ class PhantomRadarView @JvmOverloads constructor(
             canvas.restore()
         }
 
-        // Dots are visual node markers, not claims that remote servers are reachable.
+        // Node markers are decorative and never represent measured server health.
+        paint.shader = null
         paint.style = Paint.Style.FILL
         dots.forEachIndexed { index, point ->
             val dx = cx + (point.first - 0.5f) * radius * 1.72f
             val dy = cy + (point.second - 0.5f) * radius * 1.72f
-            if (dx in (cx - radius)..(cx + radius) && dy in (cy - radius)..(cy + radius)) {
+            if (dx >= cx - radius && dx <= cx + radius && dy >= cy - radius && dy <= cy + radius) {
                 paint.color = withAlpha(tone, if (active && index % 2 == 0) 230 else 110)
                 canvas.drawCircle(dx, dy, dp(if (active && index % 2 == 0) 3.2f else 2f), paint)
             }
         }
 
-        // Central glass core and fine crosshair.
-        paint.color = withAlpha(tone, 28)
-        canvas.drawCircle(cx, cy, radius * 0.19f, paint)
+        // Glass sphere: layered radial highlights, dark limb and a specular reflection.
+        val orb = radius * 0.19f
+        paint.style = Paint.Style.FILL
+        paint.shader = RadialGradient(
+            cx - orb * 0.42f, cy - orb * 0.48f, orb * 1.9f,
+            intArrayOf(withAlpha(Color.WHITE, 105), withAlpha(tone, 105), withAlpha(tone, 32), withAlpha(Color.BLACK, 210)),
+            floatArrayOf(0f, 0.23f, 0.62f, 1f), Shader.TileMode.CLAMP
+        )
+        canvas.drawCircle(cx, cy, orb, paint)
+        paint.shader = null
         paint.style = Paint.Style.STROKE
-        paint.strokeWidth = dp(1.2f)
-        paint.color = withAlpha(tone, 220)
-        canvas.drawCircle(cx, cy, radius * 0.16f, paint)
-        paint.style = Paint.Style.FILL
-        paint.color = tone
-        canvas.drawCircle(cx, cy, dp(3.5f), paint)
-        paint.color = withAlpha(tone, 150)
-        canvas.drawCircle(cx, cy, dp(9f), paint.apply { style = Paint.Style.STROKE; strokeWidth = dp(0.8f) })
-        paint.style = Paint.Style.FILL
+        paint.strokeWidth = dp(1f)
+        paint.color = withAlpha(tone, 210)
+        canvas.drawCircle(cx, cy, orb, paint)
 
-        if (attached) {
+        // Thin orbit passes in front of the glass sphere to sell the layered 3D effect.
+        canvas.save()
+        canvas.rotate(18f + phase * 0.25f, cx, cy)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = dp(1.1f)
+        paint.color = withAlpha(tone, 200)
+        canvas.drawOval(RectF(cx - orb * 1.72f, cy - orb * 0.46f, cx + orb * 1.72f, cy + orb * 0.46f), paint)
+        canvas.restore()
+
+        paint.style = Paint.Style.FILL
+        paint.shader = RadialGradient(
+            cx - orb * 0.35f, cy - orb * 0.45f, orb * 0.48f,
+            intArrayOf(withAlpha(Color.WHITE, 205), withAlpha(tone, 45), Color.TRANSPARENT),
+            null, Shader.TileMode.CLAMP
+        )
+        canvas.drawCircle(cx - orb * 0.34f, cy - orb * 0.38f, orb * 0.25f, paint)
+        paint.shader = null
+        paint.color = tone
+        canvas.drawCircle(cx, cy, dp(2.5f), paint)
+
+        if (attached && (active || danger)) {
             phase = (phase + 1.3f) % 360f
             postInvalidateOnAnimation()
         }
     }
 
-    private fun withAlpha(color: Int, alpha: Int): Int = (color and 0x00FFFFFF) or (alpha.coerceIn(0, 255) shl 24)
+    private fun withAlpha(color: Int, alpha: Int): Int =
+        (color and 0x00FFFFFF) or (alpha.coerceIn(0, 255) shl 24)
+
     private fun dp(value: Float): Float = value * resources.displayMetrics.density
 }
