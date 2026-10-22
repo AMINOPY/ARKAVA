@@ -8,9 +8,11 @@ Native Android application foundation written in Kotlin. Product UI work is defe
 - Explicit user-triggered Android VPN consent flow.
 - Foreground VPN service lifecycle shell and persistent status notification.
 - Serialized engine adapter/orchestrator with failure cleanup and bounded error messages.
+- Explicit engine capability declarations (unsupported capabilities default to false).
+- Deterministic health/latency candidate selection policy with unit tests, adapted from pg-core concepts; not yet wired into startup.
 - Bounded validation for Xray JSON outbounds, supported share-link URI schemes, and subscription text.
 - Profile persistence encrypted with AES-GCM using a key held by Android Keystore.
-- Unit tests for profile validation and connection lifecycle failure handling.
+- Unit tests for profile validation, candidate selection, and connection lifecycle failure handling.
 - GitHub Actions workflow for unit tests and debug APK assembly.
 - Pinned `AMINOPY/pg-core` source reference as a Git submodule at `third_party/pg-core`, with Android adaptation documented in [docs/PG_CORE_INTEGRATION.md](docs/PG_CORE_INTEGRATION.md).
 - No false-positive connection state: the service reports that the engine is pending and does not create a TUN interface.
