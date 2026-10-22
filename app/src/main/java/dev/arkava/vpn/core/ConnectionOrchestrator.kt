@@ -10,7 +10,10 @@ class ConnectionOrchestrator(
     private val publish: (ConnectionSnapshot) -> Unit = {}
 ) {
     private val lock = Mutex()
-    private val engines = adapters.associateBy { it.id }
+    private val engines = adapters.associateBy { it.id }.also { indexed ->
+        require(indexed.size == adapters.size) { "Engine adapter IDs must be unique" }
+        require(indexed.keys.all { it.isNotBlank() }) { "Engine adapter IDs must not be blank" }
+    }
     @Volatile private var current = ConnectionSnapshot()
 
     fun snapshot(): ConnectionSnapshot = current
