@@ -77,3 +77,11 @@ jobs:
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Upload native libXray AAR
+        uses: actions/upload-artifact@v4
+        with:
+          name: libxray-android-dbe95129
+          path: third_party/libXray-src/libXray.aar
+          if-no-files-found: error
+          retention-days: 14
