@@ -51,6 +51,22 @@ class ConnectionOrchestratorTest {
         assertEquals("Engine operation failed", result.message)
     }
 
+    @Test fun duplicateEngineIdsAreRejected() {
+        val engine = object : EngineAdapter {
+            override val id = "same"
+            override suspend fun validate(profile: ConnectionProfile) = EngineValidation.Valid
+            override suspend fun start(profile: ConnectionProfile) = EngineStartResult.Started
+            override suspend fun healthCheck() = EngineHealth.Healthy
+            override suspend fun stop() = Unit
+        }
+        try {
+            ConnectionOrchestrator(listOf(engine, engine))
+            throw AssertionError("Duplicate engine IDs should be rejected")
+        } catch (expected: IllegalArgumentException) {
+            assertEquals("Engine adapter IDs must be unique", expected.message)
+        }
+    }
+
     @Test fun missingEngineReturnsError() = runBlocking {
         val result = ConnectionOrchestrator(emptyList()).connect(profile)
         assertEquals(ConnectionState.ERROR, result.state)
