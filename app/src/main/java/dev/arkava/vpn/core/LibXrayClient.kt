@@ -6,7 +6,7 @@ import org.json.JSONObject
 
 /** Small, fail-closed client for the pinned official libXray Invoke API. */
 class LibXrayClient(
-    private val invokeNative: (String) -> String = NativeInvoke::invoke
+    private val invokeNative: (String) -> String = { request -> NativeInvoke.invoke(request) }
 ) {
     fun configureAndroidController(service: VpnService, dnsEndpoint: String) {
         val binding = NativeInvoke.bindingClass()
