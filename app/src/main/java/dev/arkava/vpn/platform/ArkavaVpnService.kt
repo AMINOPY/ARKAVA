@@ -11,6 +11,7 @@ import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import dev.arkava.vpn.core.LibXrayClient
 import dev.arkava.vpn.core.ProfileValidator
+import dev.arkava.vpn.core.TunConfigBuilder
 import dev.arkava.vpn.storage.SecureProfileStore
 import org.json.JSONObject
 
@@ -86,10 +87,8 @@ class ArkavaVpnService : VpnService() {
             // Mark first so cleanup attempts ResetDNS even if setup partially fails.
             dnsConfigured = true
             client.configureAndroidController(this, "$DNS_SERVER:53")
-            val env = config.optJSONObject("env") ?: JSONObject()
-            env.put("xray.tun.fd", descriptor.fd)
-            config.put("env", env)
-            client.start(config.toString())
+            val runtimeConfig = TunConfigBuilder.prepare(config.toString(), descriptor.fd, TUN_MTU)
+            client.start(runtimeConfig)
             check(client.isRunning()) { "Xray core did not report a running state" }
             // Core-running is not equivalent to verified end-to-end connectivity.
             enterForeground("Xray core started; tunnel connectivity not yet verified")
