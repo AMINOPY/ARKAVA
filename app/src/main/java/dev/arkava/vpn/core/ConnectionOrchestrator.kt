@@ -28,8 +28,11 @@ class ConnectionOrchestrator(
                 is EngineValidation.Invalid ->
                     transition(ConnectionState.ERROR, engine.id, validation.reason.take(MAX_ERROR_LENGTH))
                 EngineValidation.Valid -> when (val result = engine.start(profile)) {
-                    is EngineStartResult.Failed ->
+                    is EngineStartResult.Failed -> {
+                        // start() may allocate resources before discovering a late failure.
+                        runCatching { engine.stop() }
                         transition(ConnectionState.ERROR, engine.id, result.reason.take(MAX_ERROR_LENGTH))
+                    }
                     EngineStartResult.Started -> when (val health = engine.healthCheck()) {
                         EngineHealth.Healthy -> transition(ConnectionState.CONNECTED, engine.id, null)
                         is EngineHealth.Unhealthy -> {
