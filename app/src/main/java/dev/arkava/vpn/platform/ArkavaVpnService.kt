@@ -69,8 +69,9 @@ class ArkavaVpnService : VpnService() {
         tun = descriptor
         engine = client
         try {
-            client.configureAndroidController(this, "$DNS_SERVER:53")
+            // Mark first so cleanup attempts ResetDNS even if setup partially fails.
             dnsConfigured = true
+            client.configureAndroidController(this, "$DNS_SERVER:53")
             val env = config.optJSONObject("env") ?: JSONObject()
             env.put("xray.tun.fd", descriptor.fd)
             config.put("env", env)
