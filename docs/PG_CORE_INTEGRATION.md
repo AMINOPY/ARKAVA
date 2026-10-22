@@ -7,17 +7,17 @@
 - Upstream project name: Chimera Core (pg-core)
 - Upstream status: early scaffold, not production-ready.
 
-The upstream Go program is **not** an Android library and is not compiled into the APK. ARKAVA is a native Kotlin Android app, so the useful contracts and policies are being adapted at the Kotlin boundary. The exact upstream revision is pinned as a Git submodule for review and traceability.
+The upstream Go program is **not** an Android library and is not compiled into the APK. ARKAVA is a native Kotlin Android app, so useful contracts and policies are being adapted at the Kotlin boundary. The exact upstream revision is pinned as a Git submodule for review and traceability.
 
 ## Concepts adopted
 
 | pg-core area | ARKAVA adaptation |
 |---|---|
-| `internal/engine` adapter contract | Keep engine-specific code behind `EngineAdapter`; adapters must declare capabilities and honor cancellation. |
-| `internal/orchestrator` | Keep lifecycle transitions serialized; failed startup/health checks must stop the adapter and release resources. |
-| `internal/policy` candidate selector | Add deterministic health/latency-based selection only when multiple real adapters exist and have comparable measured health. |
+| `internal/engine` adapter contract | `EngineAdapter` exposes explicit `EngineCapabilities`; all capabilities default to false until an adapter proves support. |
+| `internal/orchestrator` | Lifecycle transitions remain serialized; failed startup/health checks must stop the adapter and release resources. |
+| `internal/policy` candidate selector | `EngineCandidateSelector` deterministically prefers healthy candidates, then lower latency, then engine ID; degraded candidates are fallback-only. Unit tests cover ordering and invalid candidates. |
 | `internal/config` | Validate profile structure and size before handing configuration to a native engine; never log raw profiles or credentials. |
-| `internal/resilience` | Use bounded retry/backoff with cancellation; no unbounded reconnect loop. |
+| `internal/resilience` | Bounded retry/backoff with cancellation is a required follow-up; no unbounded reconnect loop. |
 | `internal/logging` and `internal/events` | Prefer stable error codes and redacted lifecycle events rather than secret-bearing configuration or URLs. |
 | `internal/diagnostics` | Keep probes bounded and certificate-verified; a running process alone is not proof of working tunnel traffic. |
 
@@ -32,7 +32,8 @@ The upstream Go program is **not** an Android library and is not compiled into t
 
 ## Current implementation status
 
-- Existing Kotlin lifecycle orchestration and encrypted profile storage remain the Android implementation.
+- Kotlin lifecycle orchestration, explicit capability declarations, a deterministic candidate-selection policy with unit tests, and encrypted profile storage are present.
+- The candidate selector is currently a tested policy utility, **not yet wired into connection startup**; there is not yet more than one real Android engine to choose between.
 - pg-core is tracked as a source reference; its Go packages are not copied into the APK.
 - No pg-core runtime, sing-box executable, Xray native library, TUN packet forwarding, DNS bridge, or end-to-end tunnel probe is wired into ARKAVA yet.
 - The pg-core sing-box adapter starts an external executable and explicitly does not provide Android `VpnService` TUN integration. It must not be treated as a drop-in Android engine.
@@ -43,6 +44,6 @@ The upstream Go program is **not** an Android library and is not compiled into t
 2. Integrate one Android-compatible engine first (Xray/libXray), with a pinned and reviewed native artifact.
 3. Implement and test the TUN descriptor handoff, protected sockets, DNS ownership, stop/cleanup, and real tunneled connectivity probe.
 4. Add instrumentation tests on Android devices/emulators.
-5. Only after one complete engine path works, evaluate sing-box and multi-engine candidate selection.
+5. Only after one complete engine path works, evaluate sing-box and wire multi-engine candidate selection.
 
 See the upstream [architecture](https://github.com/AMINOPY/pg-core/blob/main/docs/ARCHITECTURE.md), [sing-box adapter notes](https://github.com/AMINOPY/pg-core/blob/main/docs/SING_BOX_ADAPTER.md), and [security policy](https://github.com/AMINOPY/pg-core/blob/main/SECURITY.md).
