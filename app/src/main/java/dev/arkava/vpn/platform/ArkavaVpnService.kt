@@ -10,6 +10,8 @@ import android.os.Build
 import android.os.IBinder
 import android.os.ParcelFileDescriptor
 import dev.arkava.vpn.core.LibXrayClient
+import dev.arkava.vpn.core.ProfileValidator
+import dev.arkava.vpn.storage.SecureProfileStore
 import org.json.JSONObject
 
 /** Owns the Android TUN and the libXray lifecycle. Connectivity is never inferred from start alone. */
@@ -30,12 +32,24 @@ class ArkavaVpnService : VpnService() {
             }
             ACTION_CONNECT -> {
                 enterForeground("Preparing VPN tunnel")
-                val config = intent.getStringExtra(EXTRA_XRAY_JSON)
-                if (config.isNullOrBlank()) {
-                    enterForeground("Connection refused: missing profile configuration")
+                val profileId = intent.getStringExtra(EXTRA_PROFILE_ID)
+                val profile = runCatching {
+                    require(!profileId.isNullOrBlank()) { "Missing profile ID" }
+                    SecureProfileStore(this).loadAll().firstOrNull { it.id == profileId }
+                        ?: error("Saved profile was not found")
+                }
+                if (profile.isFailure) {
+                    enterForeground("Connection refused: ${profile.exceptionOrNull()?.message.orEmpty().take(100)}")
+                    stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf(startId)
                 } else {
-                    runCatching { startTunnel(config) }.onFailure { error ->
+                    val selected = profile.getOrThrow()
+                    runCatching {
+                        require(selected.engineId.equals("xray", ignoreCase = true)) { "Profile engine is not Xray" }
+                        val validated = ProfileValidator.validateJson(selected.configJson)
+                        require(validated.isSuccess) { validated.exceptionOrNull()?.message ?: "Invalid profile" }
+                        startTunnel(selected.configJson)
+                    }.onFailure { error ->
                         cleanupEngine()
                         enterForeground("Connection failed: ${error.message.orEmpty().take(120)}")
                         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -137,7 +151,7 @@ class ArkavaVpnService : VpnService() {
         const val ACTION_PREPARE = "dev.arkava.vpn.action.PREPARE"
         const val ACTION_CONNECT = "dev.arkava.vpn.action.CONNECT"
         const val ACTION_STOP = "dev.arkava.vpn.action.STOP"
-        const val EXTRA_XRAY_JSON = "dev.arkava.vpn.extra.XRAY_JSON"
+        const val EXTRA_PROFILE_ID = "dev.arkava.vpn.extra.PROFILE_ID"
         private const val CHANNEL_ID = "arkava_vpn"
         private const val NOTIFICATION_ID = 7402
         private const val TUN_MTU = 1500
