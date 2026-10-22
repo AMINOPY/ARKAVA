@@ -2,11 +2,14 @@
 
 ## Current state
 
-ARKAVA's Kotlin service is currently a lifecycle/consent shell. It does not yet
-establish a production TUN-to-Xray data path, so it must not display a connected
-state or claim that traffic is protected. The `engine-go/xray` package tests the
-libXray Invoke JSON contract with an injected function; it is not the Android
-native binding.
+ARKAVA now has a Kotlin client for the official Invoke API and a service path
+that loads a profile from encrypted storage, validates its Xray JSON, establishes
+a TUN, registers a socket-protection controller, configures DNS, injects the
+runtime descriptor into the Xray config and manages start/stop cleanup. The
+service deliberately reports that tunnel connectivity is unverified even when
+the Xray core reports running. The complete packet-forwarding path still needs
+end-to-end device/emulator verification. The `engine-go/xray` package remains a
+separate contract-test module, not a second native runtime.
 
 ## Pinned upstream dependency
 
@@ -45,7 +48,8 @@ bridge is a contract/test module only.
 ## Verification boundary
 
 A successful Go bridge unit-test run proves request/response handling only.
-A successful AAR build proves the native dependency can be compiled. Neither
-alone proves packet forwarding. End-to-end validation still requires an Android
-emulator/device and a reachable test profile, checking that traffic routes
-through the TUN and that DNS and socket protection work without leaks.
+A successful AAR/APK build proves compilation and packaging, not packet
+forwarding. End-to-end validation still requires an Android emulator/device and
+a reachable test profile, checking that IPv4/IPv6 traffic and DNS route through
+the TUN, that sockets are protected from recursion, and that cleanup restores
+normal connectivity after both successful and failed starts.
