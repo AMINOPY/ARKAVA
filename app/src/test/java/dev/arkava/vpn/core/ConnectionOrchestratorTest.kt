@@ -23,6 +23,21 @@ class ConnectionOrchestratorTest {
         assertEquals(true, stopped)
     }
 
+    @Test fun failedStartAlwaysAttemptsCleanup() = runBlocking {
+        var stopCalled = false
+        val engine = object : EngineAdapter {
+            override val id = "fake"
+            override suspend fun validate(profile: ConnectionProfile) = EngineValidation.Valid
+            override suspend fun start(profile: ConnectionProfile): EngineStartResult =
+                EngineStartResult.Failed("native engine rejected config")
+            override suspend fun healthCheck() = EngineHealth.Healthy
+            override suspend fun stop() { stopCalled = true }
+        }
+        val result = ConnectionOrchestrator(listOf(engine)).connect(profile)
+        assertEquals(ConnectionState.ERROR, result.state)
+        assertEquals(true, stopCalled)
+    }
+
     @Test fun engineExceptionDoesNotLeaveConnectingState() = runBlocking {
         val engine = object : EngineAdapter {
             override val id = "fake"
