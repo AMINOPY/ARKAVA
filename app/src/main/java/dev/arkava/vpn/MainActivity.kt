@@ -1,5 +1,7 @@
 package dev.arkava.vpn
 
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
@@ -10,6 +12,8 @@ import android.net.VpnService
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
+import android.view.View
+import android.view.animation.DecelerateInterpolator
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.ScrollView
@@ -109,6 +113,28 @@ class MainActivity : Activity() {
             PAGE_NODES -> renderNodes()
             PAGE_INSIGHT -> renderInsight()
             else -> renderControl()
+        }
+        animatePageEntrance()
+    }
+
+    /** Staggered HUD-style reveal; native property animators keep overhead low. */
+    private fun animatePageEntrance() {
+        if (!::pageBody.isInitialized) return
+        for (index in 0 until pageBody.childCount) {
+            val child = pageBody.getChildAt(index)
+            child.alpha = 0f
+            child.translationY = dp(14).toFloat()
+            child.scaleX = 0.985f
+            child.scaleY = 0.985f
+            child.animate()
+                .alpha(1f)
+                .translationY(0f)
+                .scaleX(1f)
+                .scaleY(1f)
+                .setStartDelay((index * 42L).coerceAtMost(260L))
+                .setDuration(360L)
+                .setInterpolator(DecelerateInterpolator(1.7f))
+                .start()
         }
     }
 
@@ -387,7 +413,20 @@ class MainActivity : Activity() {
         background = rounded(if (primary) green else Color.rgb(22, 42, 42), 14, if (primary) green else Color.rgb(43, 83, 72))
         isClickable = true
         isFocusable = true
-        setOnClickListener { action() }
+        setOnClickListener {
+            // Small tactile press response while keeping the action immediate.
+            AnimatorSet().apply {
+                playTogether(
+                    ObjectAnimator.ofFloat(this@apply, View.SCALE_X, 1f, 0.975f, 1f),
+                    ObjectAnimator.ofFloat(this@apply, View.SCALE_Y, 1f, 0.975f, 1f),
+                    ObjectAnimator.ofFloat(this@apply, View.ALPHA, 1f, 0.84f, 1f)
+                )
+                duration = 150L
+                interpolator = DecelerateInterpolator()
+                start()
+            }
+            action()
+        }
     }
 
     private fun card(): LinearLayout = column().apply {
