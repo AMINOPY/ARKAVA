@@ -404,13 +404,14 @@ class MainActivity : Activity() {
         background = rounded(if (primary) green else Color.rgb(22, 42, 42), 14, if (primary) green else Color.rgb(43, 83, 72))
         isClickable = true
         isFocusable = true
+        val target = this
         setOnClickListener {
             // Small tactile press response while keeping the action immediate.
             AnimatorSet().apply {
                 playTogether(
-                    ObjectAnimator.ofFloat(this@apply, View.SCALE_X, 1f, 0.975f, 1f),
-                    ObjectAnimator.ofFloat(this@apply, View.SCALE_Y, 1f, 0.975f, 1f),
-                    ObjectAnimator.ofFloat(this@apply, View.ALPHA, 1f, 0.84f, 1f)
+                    ObjectAnimator.ofFloat(target, View.SCALE_X, 1f, 0.975f, 1f),
+                    ObjectAnimator.ofFloat(target, View.SCALE_Y, 1f, 0.975f, 1f),
+                    ObjectAnimator.ofFloat(target, View.ALPHA, 1f, 0.84f, 1f)
                 )
                 duration = 150L
                 interpolator = DecelerateInterpolator()
