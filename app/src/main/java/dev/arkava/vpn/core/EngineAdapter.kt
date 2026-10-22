@@ -3,6 +3,11 @@ package dev.arkava.vpn.core
 /** An adapter must not report CONNECTED until a real tunnel and proxied connectivity probe succeed. */
 interface EngineAdapter {
     val id: String
+
+    /** Unimplemented capabilities default to false so adapters cannot overclaim support. */
+    val capabilities: EngineCapabilities
+        get() = EngineCapabilities()
+
     suspend fun validate(profile: ConnectionProfile): EngineValidation
     suspend fun start(profile: ConnectionProfile): EngineStartResult
     suspend fun healthCheck(): EngineHealth
