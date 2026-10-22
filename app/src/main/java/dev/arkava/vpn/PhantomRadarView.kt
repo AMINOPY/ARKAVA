@@ -133,7 +133,7 @@ class PhantomRadarView @JvmOverloads constructor(
             val dx = cx + cos(angle).toFloat() * orbit
             val dy = cy + sin(angle).toFloat() * orbit * 0.78f
             val pulse = (sin(Math.toRadians((phase * 2f + index * 57f).toDouble())) + 1.0) * 0.5
-            paint.color = withAlpha(tone, (75 + pulse * if (active || danger) 175 else 65).toInt())
+            paint.color = withAlpha(tone, (75 + pulse * (if (active || danger) 175 else 65)).toInt())
             canvas.drawCircle(dx, dy, dp((1.5f + pulse.toFloat() * 1.8f)), paint)
             if (active || danger) {
                 paint.color = withAlpha(tone, (28 + pulse * 55).toInt())
