@@ -1,25 +1,36 @@
 # ARKAVA VPN — Android core foundation
 
-Android-native Kotlin foundation. UI design is intentionally deferred.
+Native Android application foundation written in Kotlin. Product UI work is deferred while the connection lifecycle is being made testable.
 
 ## Current scope
-- Android Gradle application skeleton (Kotlin/JVM 17, Android API 26+)
-- VPN consent entry point and foreground VpnService lifecycle shell
-- Domain connection states and serialized engine adapter/orchestrator contract
-- Defensive JSON/share-link validation
-- No false-positive connection state: the service does not claim that a tunnel is connected
+
+- Android Gradle application skeleton (JDK 17, Android API 26+).
+- Explicit user-triggered Android VPN consent flow.
+- Foreground VPN service lifecycle shell and persistent status notification.
+- Domain connection states and a serialized engine adapter/orchestrator contract.
+- Basic bounded JSON and share-link validation.
+- GitHub Actions workflow that attempts to assemble a debug APK on pushes and pull requests.
+- No false-positive connection state: the service reports that the engine is pending and does not create a TUN interface.
 
 ## Important status
-This is the foundation scaffold, not a production-ready VPN yet. Xray-core and sing-box are not bundled or wired into packet forwarding in this commit. A real engine adapter, profile-to-engine conversion, TUN packet forwarding, DNS/routing handling, and device integration tests are required before traffic can be tunneled.
+
+**This is not a working VPN yet.** Xray-core and sing-box are not bundled or wired to packet forwarding. The foreground service is only a lifecycle shell. Do not assume traffic is protected by this build.
 
 ## Build
-Requires JDK 17 and Android SDK platform 35. Open in Android Studio and sync Gradle, or run gradle :app:assembleDebug where Gradle and Android SDK are installed.
 
-## Next milestones
-1. Pin and bundle a reviewed Xray-core Android build, with ABI and license notices.
-2. Implement and test the Xray engine adapter and config validation.
-3. Establish Android TUN and packet forwarding in-process or through a correctly designed native bridge.
-4. Add encrypted profile storage, subscription parsing, proxied connectivity checks and bounded redacted logs.
-5. Add sing-box only after the first engine path passes device-level tests.
+Requires JDK 17, Gradle 8.11.1, and Android SDK platform/build-tools 35.
 
-Never store server secrets in source control or log raw configuration URLs/tokens.
+    gradle --no-daemon :app:assembleDebug
+
+The GitHub Actions workflow runs the same assemble command. A green workflow is a compile/package check only; it does not prove that a VPN tunnel works on a device.
+
+## Next engineering milestones
+
+1. Select and pin a reviewed Xray-core Android-compatible release/build; document its source, checksum, ABI support, and licenses.
+2. Implement profile-to-Xray configuration conversion and strict validation.
+3. Implement the real TUN-to-engine packet path and DNS/routing behavior; never mark CONNECTED before a proxied connectivity probe succeeds.
+4. Add device/instrumentation tests for consent, service lifecycle, connect/disconnect, and failure recovery.
+5. Add encrypted profile storage, safe subscription parsing, and bounded redacted logs.
+6. Consider sing-box after the first engine path passes device-level tests.
+
+Never commit server credentials or log raw configuration URLs/tokens.
